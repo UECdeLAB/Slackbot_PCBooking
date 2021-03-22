@@ -23,11 +23,11 @@ MSG_TEMPLATE={
     "promoteRegister":"事前に名前を登録をしてください。\n「I am 名前」で登録ができます。\n再登録も同じ方法です。",
     "resRegistered":"<@%s|username>\n名前を「%s」として登録しました。",
     "usedList":"\n現在以下のPCを使用中です。\n%s",
-    "resBooked":"<@%s|username>\n予約は正常に処理されました。%s",
+    "resBooked":"<@%s|username>\n使用申請は正常に処理されました。%s",
     "alreadyBooked":"<@%s|username>\nPC%sは既に%sさんが使用しています。",
     "showListItem":" - PC%s : %s (%sから使用)\n",
     "resShow":"<@%s|username>\n現在の使用状況は以下の通りです。\n%s",
-    "resRemove":"<@%s|username>\n予約は正常に開放されました。\n%s",
+    "resRemove":"<@%s|username>\n使用状況は正常に開放されました。\n%s",
     "help":"<@%s|username>\nメッセージが解釈できませんでした。\n - 「I am 名前」で名前を登録します。\n - 「N使用」でPCのN番を使用を開始します。\n - 「N開放」でPCのN番の使用を停止します。\n - 「開放」ですべてのPCの使用を停止します。\n - 「show」で現在の使用状況を出力します。"
 }
 
@@ -52,7 +52,7 @@ MSG_TEMPLATE={
 # ヘルプメッセージを表示する
 @default_reply
 def help(message):
-    message.send(MSG_TEMPLATE["help"]%message.body["user"])
+    message.reply(MSG_TEMPLATE["help"]%message.body["user"])
 
 # 「I am 名前」とメンションされた場合の応答
 # PCの使用者としての名前を更新する
@@ -68,7 +68,7 @@ def addUser(message,name):
         "name":name
     })
     # Slack側に登録結果を通知
-    message.send(MSG_TEMPLATE["resRegistered"]%(message.body["user"],name))
+    message.reply(MSG_TEMPLATE["resRegistered"]%(message.body["user"],name),in_thread=True)
 
 
 # 「N使用」とメンションされた場合の応答(Nは0~9)
@@ -79,7 +79,7 @@ def reg(message,pc):
     uid = message.body["user"]
     # 未登録の場合は促すその旨を通知する
     if not isRegistered(uid):
-        message.send(MSG_TEMPLATE["promoteRegister"])
+        message.reply(MSG_TEMPLATE["promoteRegister"],in_thread=True)
         return
     # 予約に関するデータを選択
     booking = db[BOOKING]
@@ -88,7 +88,7 @@ def reg(message,pc):
     bookedRecord = booking.find_one(pc=pc)
     # データが存在した場合はエラーを通知する
     if bookedRecord != None:
-        message.send(MSG_TEMPLATE["alreadyBooked"]%(uid,pc,getUserName(bookedRecord["uid"])))
+        message.reply(MSG_TEMPLATE["alreadyBooked"]%(uid,pc,getUserName(bookedRecord["uid"])),in_thread=True)
         return
     # 予約データを追加する
     booking.insert({
@@ -99,7 +99,7 @@ def reg(message,pc):
     # 予約済みのリストを作成
     myBooked = getBookedList(uid)
     # Slackに通知する
-    message.send(MSG_TEMPLATE["resBooked"]%(uid,myBooked))
+    message.reply(MSG_TEMPLATE["resBooked"]%(uid,myBooked),in_thread=True)
 
 
 # 「show」とメンションされた場合の応答
@@ -119,7 +119,7 @@ def show(message):
         result+=MSG_TEMPLATE["showListItem"]%(row["pc"],getUserName(row["uid"]),date)
     if(result==""):
         result = "すべてのPCが未使用"
-    message.send(MSG_TEMPLATE["resShow"]%(message.body["user"],result))
+    message.reply(MSG_TEMPLATE["resShow"]%(message.body["user"],result),in_thread=True)
 
 
 # 「開放」とメンションされた場合の応答
@@ -130,14 +130,14 @@ def rmAll(message):
     uid = message.body["user"]
     # 未登録の場合は促すその旨を通知する
     if not isRegistered(uid):
-        message.send(MSG_TEMPLATE["promoteRegister"])
+        message.reply(MSG_TEMPLATE["promoteRegister"],in_thread=True)
         return
     # 予約に関するデータを選択
     booking = db[BOOKING]
     # 自分のIDで登録したデータをすべて削除
     booking.delete(uid=uid)
     # Slackに通知
-    message.send(MSG_TEMPLATE["resRemove"]%(uid,getBookedList(uid)))
+    message.reply(MSG_TEMPLATE["resRemove"]%(uid,getBookedList(uid)),in_thread=True)
 
 
 # 「開放」とメンションされた場合の応答
@@ -148,14 +148,14 @@ def rm(message,pc):
     uid = message.body["user"]
     # 未登録の場合は促すその旨を通知する
     if not isRegistered(uid):
-        message.send(MSG_TEMPLATE["promoteRegister"])
+        message.reply(MSG_TEMPLATE["promoteRegister"],in_thread=True)
         return
     # 予約に関するデータを選択
     booking = db[BOOKING]
     # 自分のIDで登録したデータかつ指定したPC番号を削除
     booking.delete(uid=uid,pc=pc)
     # Slackに通知
-    message.send(MSG_TEMPLATE["resRemove"]%(uid,getBookedList(uid)))
+    message.reply(MSG_TEMPLATE["resRemove"]%(uid,getBookedList(uid)),in_thread=True)
 
 
 # 名前が登録されているかどうかを判断する
